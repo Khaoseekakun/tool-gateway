@@ -1,6 +1,6 @@
 {
   "name": "@fourbits-studio/tool-gateway",
-  "version": "0.1.11",
+  "version": "0.2.0",
   "description": "A lightweight, type-safe and extensible AI tool gateway for TypeScript, Node.js and Bun.",
   "type": "module",
   "main": "./dist/index.js",

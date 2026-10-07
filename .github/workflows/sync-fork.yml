@@ -1,0 +1,24 @@
+name: Auto Sync Fork
+
+on:
+  schedule:
+    - cron: '0 */1 * * *'
+  workflow_dispatch:
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout target branch
+        uses: actions/checkout@v4
+
+      - name: Sync with Upstream
+        uses: aormsby/Fork-Sync-With-Upstream-action@v3.4.1
+        with:
+          upstream_sync_repo: Fourbits-Studio/tool-gateway # เปลี่ยนเป็นชื่อ Org/Repo ต้นทาง
+          upstream_sync_branch: main                      # หรือ master ตาม branch หลักของต้นทาง
+          target_sync_branch: main                        # branch ใน repo ของคุณ
+          target_repo_token: ${{ secrets.GITHUB_TOKEN }}

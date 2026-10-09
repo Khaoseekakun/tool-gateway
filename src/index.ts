@@ -1,5 +1,7 @@
 export * from "./types";
 export * from "./gateway";
+export * from "./validation";
+export * from "./handle";
 export * from "./adapters/openai";
 export * from "./adapters/anthropic";
 export * from "./adapters/gemini";

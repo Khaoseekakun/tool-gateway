@@ -49,6 +49,7 @@ describe("OpenAI Adapter", () => {
 
     gateway.register({
       name: "calculate",
+      description: "calculate (test)",
       execute: (input: { x: number; y: number }) => {
         return input.x * input.y;
       },
@@ -67,6 +68,8 @@ describe("OpenAI Adapter", () => {
 
     expect(result.tool_call_id).toBe("call_abc123");
     expect(result.output).toBe(20);
+    // Non-string output is JSON-encoded into `content` for the tool message.
+    expect(result.content).toBe("20");
   });
 
   test("executeOpenAIToolCalls สามารถรันหลาย tool calls พร้อมกันได้", async () => {
@@ -74,6 +77,7 @@ describe("OpenAI Adapter", () => {
 
     gateway.register({
       name: "echo",
+      description: "echo (test)",
       execute: (input: { message: string }) => input.message,
     });
 
@@ -99,9 +103,31 @@ describe("OpenAI Adapter", () => {
     const results = await executeOpenAIToolCalls(gateway, toolCalls);
 
     expect(results).toHaveLength(2);
+    // String output passes through `content` unchanged.
     expect(results).toEqual([
-      { tool_call_id: "call_1", output: "hello" },
-      { tool_call_id: "call_2", output: "world" },
+      { tool_call_id: "call_1", content: "hello", output: "hello" },
+      { tool_call_id: "call_2", content: "world", output: "world" },
     ]);
+  });
+
+  test("content is a JSON string for object output (sendable as role:tool)", async () => {
+    const gateway = createToolGateway();
+    gateway.register({
+      name: "get_weather",
+      description: "get_weather (test)",
+      execute: (input: { city: string }) => ({
+        weather: "sunny",
+        city: input.city,
+      }),
+    });
+
+    const result = await executeOpenAIToolCall(gateway, {
+      id: "call_w",
+      type: "function",
+      function: { name: "get_weather", arguments: '{"city":"BKK"}' },
+    });
+
+    expect(typeof result.content).toBe("string");
+    expect(JSON.parse(result.content)).toEqual({ weather: "sunny", city: "BKK" });
   });
 });

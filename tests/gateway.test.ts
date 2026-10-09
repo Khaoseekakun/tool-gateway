@@ -7,6 +7,7 @@ describe("ToolGateway", () => {
 
     gateway.register({
       name: "add",
+      description: "add (test)",
       execute(input: { a: number; b: number }) {
         return input.a + input.b;
       },
@@ -26,10 +27,12 @@ describe("ToolGateway", () => {
     gateway
       .register({
         name: "double",
+        description: "double (test)",
         execute: (x: number) => x * 2,
       })
       .register({
         name: "square",
+        description: "square (test)",
         execute: (x: number) => x * x,
       });
 

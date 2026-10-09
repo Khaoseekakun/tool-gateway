@@ -5,6 +5,7 @@ import type {
   AnthropicToolUseBlock,
   ToolDefinition,
 } from "../types";
+import { toErrorMessage, toToolContent } from "./shared";
 
 export function toAnthropicTool(tool: ToolDefinition): AnthropicTool {
   return {
@@ -33,7 +34,7 @@ export async function executeAnthropicToolUse(
   return {
     type: "tool_result",
     tool_use_id: toolUse.id,
-    content: typeof output === "string" ? output : JSON.stringify(output),
+    content: toToolContent(output),
   };
 }
 
@@ -43,5 +44,29 @@ export async function executeAnthropicToolUses(
 ): Promise<AnthropicToolResultBlock[]> {
   return Promise.all(
     toolUses.map((toolUse) => executeAnthropicToolUse(gateway, toolUse)),
+  );
+}
+
+/**
+ * Fail-soft variant: a failing tool yields a `tool_result` whose content is
+ * `{"error": "..."}` (same block shape as success) instead of rejecting the
+ * whole batch, so the error can be sent back to Claude for self-correction.
+ */
+export async function executeAnthropicToolUsesSettled(
+  gateway: ToolGateway,
+  toolUses: AnthropicToolUseBlock[],
+): Promise<AnthropicToolResultBlock[]> {
+  return Promise.all(
+    toolUses.map(async (toolUse) => {
+      try {
+        return await executeAnthropicToolUse(gateway, toolUse);
+      } catch (error) {
+        return {
+          type: "tool_result",
+          tool_use_id: toolUse.id,
+          content: JSON.stringify({ error: toErrorMessage(error) }),
+        };
+      }
+    }),
   );
 }

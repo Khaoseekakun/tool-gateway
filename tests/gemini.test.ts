@@ -50,6 +50,7 @@ describe("Google Gemini Adapter", () => {
 
     gateway.register({
       name: "multiply",
+      description: "multiply (test)",
       execute: (input: { a: number; b: number }) => ({
         result: input.a * input.b,
       }),
@@ -77,6 +78,7 @@ describe("Google Gemini Adapter", () => {
 
     gateway.register({
       name: "ping",
+      description: "ping (test)",
       execute: () => "pong",
     });
 
@@ -97,6 +99,7 @@ describe("Google Gemini Adapter", () => {
 
     gateway.register({
       name: "get_status",
+      description: "get_status (test)",
       execute: (input: { service: string }) => ({
         service: input.service,
         status: "healthy",

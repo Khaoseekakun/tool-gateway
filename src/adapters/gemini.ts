@@ -6,6 +6,7 @@ import type {
   GeminiTool,
   ToolDefinition,
 } from "../types";
+import { toErrorMessage } from "./shared";
 
 export function toGeminiFunctionDeclaration(
   tool: ToolDefinition,
@@ -60,5 +61,30 @@ export async function executeGeminiFunctionCalls(
 ): Promise<GeminiFunctionResponsePart[]> {
   return Promise.all(
     functionCalls.map((call) => executeGeminiFunctionCall(gateway, call)),
+  );
+}
+
+/**
+ * Fail-soft variant: a failing tool yields a `functionResponse` whose
+ * `response` is `{ error: "..." }` (same part shape as success) instead of
+ * rejecting the whole batch.
+ */
+export async function executeGeminiFunctionCallsSettled(
+  gateway: ToolGateway,
+  functionCalls: GeminiFunctionCall[],
+): Promise<GeminiFunctionResponsePart[]> {
+  return Promise.all(
+    functionCalls.map(async (call) => {
+      try {
+        return await executeGeminiFunctionCall(gateway, call);
+      } catch (error) {
+        return {
+          functionResponse: {
+            name: call.name,
+            response: { error: toErrorMessage(error) },
+          },
+        };
+      }
+    }),
   );
 }

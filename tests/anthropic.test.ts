@@ -46,6 +46,7 @@ describe("Anthropic Adapter", () => {
 
     gateway.register({
       name: "add",
+      description: "add (test)",
       execute: (input: { a: number; b: number }) => {
         return { sum: input.a + input.b };
       },
@@ -72,6 +73,7 @@ describe("Anthropic Adapter", () => {
 
     gateway.register({
       name: "greet",
+      description: "greet (test)",
       execute: (name: string) => `Hello, ${name}!`,
     });
 
@@ -96,6 +98,7 @@ describe("Anthropic Adapter", () => {
 
     gateway.register({
       name: "square",
+      description: "square (test)",
       execute: (n: number) => n * n,
     });
 

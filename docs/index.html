@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Tool Gateway — Live Execution Flow</title>
+  <meta name="description" content="Interactive demo showing how @fourbits-studio/tool-gateway executes AI tool calls: one gateway, every provider, step by step." />
+  <link rel="stylesheet" href="./style.css" />
+  <script src="https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.min.js"></script>
+</head>
+<body>
+  <header class="site-header">
+    <div class="wrap">
+      <h1>🧩 Tool Gateway <span class="ver">v0.3.0</span></h1>
+      <p class="subtitle">
+        Live execution flow — one gateway, every provider, step by step
+        · <span class="th">รัน library ของจริงใน browser — ทุกขั้นตอนด้านล่างคือโค้ดจริง ไม่ใช่ mock</span>
+      </p>
+      <p class="links">
+        <a href="https://github.com/Fourbits-Studio/tool-gateway">GitHub</a> ·
+        <a href="https://www.npmjs.com/package/@fourbits-studio/tool-gateway">npm</a>
+      </p>
+    </div>
+  </header>
+
+  <section class="wrap diagram-section">
+    <h2>The pipeline (high level)</h2>
+    <pre class="mermaid">
+sequenceDiagram
+    participant U as Your app
+    participant G as ToolGateway
+    participant M as Model (OpenAI / Claude / Gemini / Cohere)
+    participant T as Your tool code
+
+    U->>G: createToolGateway() + register()
+    U->>G: toTools(gateway, provider)
+    U->>M: chat request with provider-formatted tools
+    M-->>U: tool_calls (provider wire format)
+    U->>G: runToolCalls(gateway, toolCalls)
+    Note over G: auto-detect provider<br/>middleware (onion)<br/>JSON-Schema validation<br/>timeout guard
+    G->>T: execute(input)
+    T-->>G: output
+    G-->>U: results in provider's native format
+    U->>M: append results → model continues
+    </pre>
+  </section>
+
+  <main class="wrap layout">
+    <section id="pipeline" aria-live="polite"></section>
+
+    <aside class="side">
+      <div class="panel controls">
+        <h3>1 · Pick provider</h3>
+        <div class="tabs" id="provider-tabs"></div>
+        <p class="hint th">tool_calls จำลองตาม format ของ provider นั้น · ผลลัพธ์คืนตาม format เดิมของมัน</p>
+
+        <h3>2 · Pick scenarios <span class="th">(เลือกสถานการณ์ที่อยากให้ model เรียก)</span></h3>
+        <label class="chk"><input type="checkbox" data-scenario="ok" checked /> ✅ Valid call — <code>get_weather</code></label>
+        <label class="chk"><input type="checkbox" data-scenario="bad" checked /> ⚠️ Invalid input — <code>city: 12345</code> (ต้องเป็น string)</label>
+        <label class="chk"><input type="checkbox" data-scenario="slow" checked /> ⏱️ Slow call — <code>query_db</code> (700ms vs timeout 250ms)</label>
+        <label class="chk"><input type="checkbox" data-scenario="boom" checked /> 💥 Failing tool — <code>send_report</code> (SMTP down)</label>
+
+        <div class="row">
+          <label class="hint">Speed
+            <select id="speed">
+              <option value="500">Normal</option>
+              <option value="250">Fast</option>
+              <option value="1000">Slow (study mode)</option>
+            </select>
+          </label>
+          <button id="run" class="primary">▶ Run flow</button>
+          <button id="reset" class="ghost">Reset</button>
+        </div>
+      </div>
+
+      <div class="panel console">
+        <h3>Execution log <span class="th">(เหตุการณ์จริงตามลำดับเวลา)</span></h3>
+        <pre id="console"></pre>
+      </div>
+    </aside>
+  </main>
+
+  <footer class="wrap">
+    <p>
+      Demo นี้รัน <code>@fourbits-studio/tool-gateway</code> build จริงใน browser
+      (ดูโค้ด: <a href="./app.js">app.js</a> · <a href="./lib/tool-gateway.js">bundle</a>) —
+      repository: <a href="https://github.com/Fourbits-Studio/tool-gateway">Fourbits-Studio/tool-gateway</a>
+    </p>
+  </footer>
+
+  <script type="module" src="./app.js"></script>
+</body>
+</html>

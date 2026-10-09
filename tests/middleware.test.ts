@@ -22,6 +22,7 @@ describe("Middleware & Lifecycle Hooks", () => {
 
     gateway.register({
       name: "hello",
+      description: "hello (test)",
       execute: (name: string) => {
         trace.push(`exec_${name}`);
         return `Hello, ${name}`;
@@ -53,6 +54,7 @@ describe("Middleware & Lifecycle Hooks", () => {
 
     gateway.register({
       name: "echo",
+      description: "echo (test)",
       execute: (text: string) => text,
     });
 
@@ -73,6 +75,7 @@ describe("Middleware & Lifecycle Hooks", () => {
 
     gateway.register({
       name: "dangerous_tool",
+      description: "dangerous_tool (test)",
       execute: () => "dropped table",
     });
 
@@ -98,6 +101,7 @@ describe("Middleware & Lifecycle Hooks", () => {
 
     gateway.register({
       name: "fail",
+      description: "fail (test)",
       execute: () => {
         throw new Error("Database timeout");
       },
@@ -122,10 +126,12 @@ describe("Middleware & Lifecycle Hooks", () => {
     gateway
       .register({
         name: "math_add",
+        description: "math_add (test)",
         execute: (x: number) => x + 1,
       })
       .register({
         name: "math_sub",
+        description: "math_sub (test)",
         execute: (x: number) => x - 1,
       });
 

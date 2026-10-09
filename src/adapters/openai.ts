@@ -1,5 +1,21 @@
 import type { ToolGateway } from "../gateway";
 import type { OpenAITool, OpenAIToolCall, ToolDefinition } from "../types";
+import { toErrorMessage, toToolContent } from "./shared";
+
+export type OpenAIToolCallResult =
+  | {
+      tool_call_id: string;
+      /** Ready to send as the `content` of a `role: "tool"` message. */
+      content: string;
+      output: unknown;
+      error?: undefined;
+    }
+  | {
+      tool_call_id: string;
+      content: string;
+      output: null;
+      error: string;
+    };
 
 export function toOpenAITool(tool: ToolDefinition): OpenAITool {
   return {
@@ -23,7 +39,7 @@ export function toOpenAITools(tools: ToolDefinition[] | ToolGateway): OpenAITool
 export async function executeOpenAIToolCall<TOutput = unknown>(
   gateway: ToolGateway,
   toolCall: OpenAIToolCall,
-): Promise<{ tool_call_id: string; output: TOutput }> {
+): Promise<{ tool_call_id: string; content: string; output: TOutput }> {
   const name = toolCall.function.name;
   let input: unknown = {};
 
@@ -40,6 +56,9 @@ export async function executeOpenAIToolCall<TOutput = unknown>(
   const output = await gateway.execute<TOutput>(name, input);
   return {
     tool_call_id: toolCall.id,
+    // `content` is a string ready to paste into a `role: "tool"` message;
+    // `output` is the raw value for your own use.
+    content: toToolContent(output),
     output,
   };
 }
@@ -47,8 +66,36 @@ export async function executeOpenAIToolCall<TOutput = unknown>(
 export async function executeOpenAIToolCalls(
   gateway: ToolGateway,
   toolCalls: OpenAIToolCall[],
-): Promise<Array<{ tool_call_id: string; output: unknown }>> {
+): Promise<
+  Array<{ tool_call_id: string; content: string; output: unknown }>
+> {
   return Promise.all(
     toolCalls.map((toolCall) => executeOpenAIToolCall(gateway, toolCall)),
+  );
+}
+
+/**
+ * Fail-soft variant: a failing tool returns `{ tool_call_id, output: null,
+ * error }` instead of rejecting the whole batch. Use this in agent loops so
+ * the model receives a per-call error and can retry with corrected arguments.
+ */
+export async function executeOpenAIToolCallsSettled(
+  gateway: ToolGateway,
+  toolCalls: OpenAIToolCall[],
+): Promise<OpenAIToolCallResult[]> {
+  return Promise.all(
+    toolCalls.map(async (toolCall): Promise<OpenAIToolCallResult> => {
+      try {
+        return await executeOpenAIToolCall(gateway, toolCall);
+      } catch (error) {
+        const message = toErrorMessage(error);
+        return {
+          tool_call_id: toolCall.id,
+          content: JSON.stringify({ error: message }),
+          output: null,
+          error: message,
+        };
+      }
+    }),
   );
 }

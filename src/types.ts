@@ -1,13 +1,24 @@
 export interface ToolDefinition<TInput = unknown, TOutput = unknown> {
   name: string;
-  description?: string;
+  /**
+   * Required: every supported provider uses it to decide when to call the
+   * tool, and the Anthropic API rejects tools without a description.
+   */
+  description: string;
   parameters?: Record<string, unknown>;
+  /**
+   * Optional per-tool execution timeout in milliseconds. Overrides the
+   * gateway's `defaultTimeout`. Exceeding it rejects with
+   * `ToolTimeoutError`. Note: the timer cannot cancel in-flight side
+   * effects — it only bounds how long the caller waits.
+   */
+  timeout?: number;
   execute(input: TInput): Promise<TOutput> | TOutput;
 }
 
 export interface ToolSummary {
   name: string;
-  description?: string;
+  description: string;
 }
 
 // ---------------------------------------------------------------------------
@@ -123,13 +134,48 @@ export interface CohereToolResult {
   outputs: Array<Record<string, unknown>>;
 }
 
+// Cohere v2 (api.cohere.ai/v2/chat) uses the OpenAI-compatible tool format:
+// OpenAI/Anthropic-style JSON Schema for definitions and JSON-string arguments
+// in tool calls. Results are returned as `document` content blocks.
+export interface CohereV2Function {
+  name: string;
+  description?: string;
+  parameters?: Record<string, unknown>;
+}
+
+export interface CohereV2Tool {
+  type: "function";
+  function: CohereV2Function;
+}
+
+export interface CohereV2ToolCall {
+  id: string;
+  type: "function";
+  function: {
+    name: string;
+    arguments: string;
+  };
+}
+
+export interface CohereV2ToolResult {
+  tool_call_id: string;
+  content: Array<{ type: "document"; document: { data: string } }>;
+}
+
 // ---------------------------------------------------------------------------
 // Vercel AI SDK Format
 // ---------------------------------------------------------------------------
+// `inputSchema` holds the JSON schema wrapped by the AI SDK's `jsonSchema()`
+// helper (see adapters/vercel.ts). It is typed `unknown` because `ai` is an
+// optional peer dependency loaded lazily — the returned value is a runtime
+// marker object, not the raw JSON schema.
 export interface VercelAITool<TInput = unknown, TOutput = unknown> {
   description?: string;
-  parameters: Record<string, unknown>;
-  execute: (args: TInput) => Promise<TOutput>;
+  inputSchema: unknown;
+  execute: (
+    args: TInput,
+    options?: { toolCallId?: string; abortSignal?: AbortSignal },
+  ) => Promise<TOutput> | TOutput;
 }
 
 export type VercelAIToolSet = Record<string, VercelAITool>;
